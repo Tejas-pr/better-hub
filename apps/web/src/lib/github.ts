@@ -5809,6 +5809,25 @@ export async function getOrgMembers(org: string, perPage = 100) {
 	});
 }
 
+/**
+ * GitHub stats endpoints return 202 while computing data in the background.
+ * Retry with exponential backoff until we get a 200 with actual data.
+ */
+async function retryStatsRequest<T>(
+	request: () => Promise<{ status: number; data: T }>,
+	maxRetries = 4,
+): Promise<{ status: number; data: T }> {
+	let response = await request();
+	let attempt = 0;
+	while (response.status === 202 && attempt < maxRetries) {
+		const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s, 8s
+		await new Promise((r) => setTimeout(r, delay));
+		response = await request();
+		attempt++;
+	}
+	return response;
+}
+
 export interface ContributorWeek {
 	w: number; // unix timestamp (start of week)
 	a: number; // additions
@@ -5831,12 +5850,9 @@ export async function getRepoContributorStats(
 	if (!octokit) return [];
 
 	try {
-		// GitHub may return 202 while computing stats - retry once
-		let response = await octokit.repos.getContributorsStats({ owner, repo });
-		if (response.status === 202) {
-			await new Promise((r) => setTimeout(r, 2000));
-			response = await octokit.repos.getContributorsStats({ owner, repo });
-		}
+		const response = await retryStatsRequest(() =>
+			octokit.repos.getContributorsStats({ owner, repo }),
+		);
 		if (!Array.isArray(response.data)) return [];
 		return response.data.map((entry) => ({
 			login: entry.author?.login ?? "",
@@ -5868,17 +5884,12 @@ export async function getCommitActivity(
 	if (!octokit) return [];
 
 	try {
-		let response = await octokit.request(
-			"GET /repos/{owner}/{repo}/stats/commit_activity",
-			{ owner, repo },
+		const response = await retryStatsRequest(() =>
+			octokit.request("GET /repos/{owner}/{repo}/stats/commit_activity", {
+				owner,
+				repo,
+			}),
 		);
-		if (response.status === 202) {
-			await new Promise((r) => setTimeout(r, 2000));
-			response = await octokit.request(
-				"GET /repos/{owner}/{repo}/stats/commit_activity",
-				{ owner, repo },
-			);
-		}
 		if (!Array.isArray(response.data)) return [];
 		return (response.data as { total: number; week: number; days: number[] }[]).map(
 			(w) => ({
@@ -5904,17 +5915,12 @@ export async function getCodeFrequency(owner: string, repo: string): Promise<Cod
 	if (!octokit) return [];
 
 	try {
-		let response = await octokit.request(
-			"GET /repos/{owner}/{repo}/stats/code_frequency",
-			{ owner, repo },
+		const response = await retryStatsRequest(() =>
+			octokit.request("GET /repos/{owner}/{repo}/stats/code_frequency", {
+				owner,
+				repo,
+			}),
 		);
-		if (response.status === 202) {
-			await new Promise((r) => setTimeout(r, 2000));
-			response = await octokit.request(
-				"GET /repos/{owner}/{repo}/stats/code_frequency",
-				{ owner, repo },
-			);
-		}
 		if (!Array.isArray(response.data)) return [];
 		return (response.data as [number, number, number][]).map((entry) => ({
 			week: entry[0] ?? 0,
@@ -5940,17 +5946,12 @@ export async function getWeeklyParticipation(
 	if (!octokit) return null;
 
 	try {
-		let response = await octokit.request(
-			"GET /repos/{owner}/{repo}/stats/participation",
-			{ owner, repo },
+		const response = await retryStatsRequest(() =>
+			octokit.request("GET /repos/{owner}/{repo}/stats/participation", {
+				owner,
+				repo,
+			}),
 		);
-		if ((response.status as number) === 202) {
-			await new Promise((r) => setTimeout(r, 2000));
-			response = await octokit.request(
-				"GET /repos/{owner}/{repo}/stats/participation",
-				{ owner, repo },
-			);
-		}
 		const data = response.data as { all?: number[]; owner?: number[] };
 		if (!data.all) return null;
 		return {
