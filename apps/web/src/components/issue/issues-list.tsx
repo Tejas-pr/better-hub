@@ -115,6 +115,7 @@ export function IssuesList({
 	const { openChat } = useGlobalChat();
 
 	const [countAdjustments, setCountAdjustments] = useState({ open: 0, closed: 0 });
+	const filtersTriggerRef = useRef<HTMLButtonElement>(null);
 
 	useEffect(() => {
 		setCountAdjustments({ open: 0, closed: 0 });
@@ -416,8 +417,8 @@ export function IssuesList({
 			{/* Toolbar */}
 			<div className="sticky top-0 z-10 bg-background pb-3 pt-4 before:content-[''] before:absolute before:left-0 before:right-0 before:bottom-full before:h-8 before:bg-background">
 				{/* Row 1: Search + Sort + Filter + New Issue */}
-				<div className="flex items-center gap-2 mb-3 flex-wrap">
-					<div className="relative flex-1 max-w-sm">
+				<div className="flex flex-col md:flex-row md:items-center gap-2 mb-3">
+					<div className="relative w-full md:flex-1 md:max-w-sm">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
 						<input
 							ref={searchInputRef}
@@ -430,464 +431,498 @@ export function IssuesList({
 						/>
 					</div>
 
-					<button
-						onClick={() =>
-							setSort(
-								sortCycle[
-									(sortCycle.indexOf(sort) +
-										1) %
-										sortCycle.length
-								],
-							)
-						}
-						className={cn(
-							"flex items-center gap-1.5 h-8 px-3 rounded-sm border text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer",
-							sort !== "updated"
-								? "border-foreground/20 bg-muted/50 dark:bg-white/4 text-foreground"
-								: "border-border text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 dark:hover:bg-white/3",
-						)}
-					>
-						<ArrowUpDown className="w-3 h-3" />
-						{sortLabels[sort]}
-					</button>
-
-					<div ref={filtersRef} className="relative">
+					<div className="flex items-center gap-2 flex-wrap md:contents">
 						<button
-							onClick={() => setFiltersOpen((v) => !v)}
+							onClick={() =>
+								setSort(
+									sortCycle[
+										(sortCycle.indexOf(
+											sort,
+										) +
+											1) %
+											sortCycle.length
+									],
+								)
+							}
 							className={cn(
-								"flex items-center gap-1.5 h-8 px-3 rounded-sm border text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer",
-								filtersOpen || activeFilterCount > 0
+								"flex-1 md:flex-none flex items-center justify-center gap-1.5 h-8 md:px-3 rounded-sm border text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer",
+								sort !== "updated"
 									? "border-foreground/20 bg-muted/50 dark:bg-white/4 text-foreground"
 									: "border-border text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 dark:hover:bg-white/3",
 							)}
 						>
-							<SlidersHorizontal className="w-3 h-3" />
-							Filters
-							{activeFilterCount > 0 && (
-								<span className="flex items-center justify-center w-4 h-4 rounded-full bg-foreground/10 text-[9px] font-mono text-foreground">
-									{activeFilterCount}
-								</span>
-							)}
+							<ArrowUpDown className="w-3 h-3" />
+							{sortLabels[sort]}
 						</button>
 
-						{filtersOpen && (
-							<div className="absolute z-30 top-full right-0 mt-2 w-[calc(100vw-2rem)] sm:w-72 border border-border/60 bg-background shadow-xl rounded-xl overflow-hidden">
-								{/* Activity */}
-								<div className="px-3.5 pt-3 pb-2.5">
-									<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-										Activity
+						<div
+							ref={filtersRef}
+							className="relative flex-1 md:flex-none"
+						>
+							<button
+								ref={filtersTriggerRef}
+								onClick={() =>
+									setFiltersOpen((v) => !v)
+								}
+								className={cn(
+									"w-full md:w-auto flex items-center justify-center gap-1.5 h-8 px-3 rounded-sm border text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer",
+									filtersOpen ||
+										activeFilterCount >
+											0
+										? "border-foreground/20 bg-muted/50 dark:bg-white/4 text-foreground"
+										: "border-border text-muted-foreground/60 hover:text-foreground hover:bg-muted/40 dark:hover:bg-white/3",
+								)}
+							>
+								<SlidersHorizontal className="w-3 h-3" />
+								Filters
+								{activeFilterCount > 0 && (
+									<span className="flex items-center justify-center w-4 h-4 rounded-full bg-foreground/10 text-[9px] font-mono text-foreground">
+										{activeFilterCount}
 									</span>
-									<div className="flex flex-wrap gap-1 mt-2">
-										{(
-											[
+								)}
+							</button>
+
+							{filtersOpen && (
+								<div
+									className="fixed z-30 w-72 border border-border/60 bg-background shadow-xl rounded-xl overflow-hidden"
+									style={{
+										top:
+											(filtersTriggerRef.current?.getBoundingClientRect()
+												.bottom ??
+												0) +
+											8,
+										right: Math.max(
+											8,
+											window.innerWidth -
+												(filtersTriggerRef.current?.getBoundingClientRect()
+													.right ??
+													0),
+										),
+									}}
+								>
+									{/* Activity */}
+									<div className="px-3.5 pt-3 pb-2.5">
+										<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+											Activity
+										</span>
+										<div className="flex flex-wrap gap-1 mt-2">
+											{(
 												[
-													"all",
-													"All",
-												],
-												[
-													"most-active",
-													"Active",
-												],
-												[
-													"no-response",
-													"No Response",
-												],
-												[
-													"quiet",
-													"Quiet",
-												],
-											] as [
-												ActivityFilter,
-												string,
-											][]
-										).map(
-											([
-												value,
-												label,
-											]) => (
-												<button
-													key={
-														value
-													}
-													onClick={() =>
-														setActivityFilter(
-															value,
-														)
-													}
-													className={cn(
-														"px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
-														activityFilter ===
+													[
+														"all",
+														"All",
+													],
+													[
+														"most-active",
+														"Active",
+													],
+													[
+														"no-response",
+														"No Response",
+													],
+													[
+														"quiet",
+														"Quiet",
+													],
+												] as [
+													ActivityFilter,
+													string,
+												][]
+											).map(
+												([
+													value,
+													label,
+												]) => (
+													<button
+														key={
 															value
-															? "bg-foreground/8 text-foreground"
-															: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
-													)}
-												>
-													{
-														label
-													}
-												</button>
-											),
-										)}
+														}
+														onClick={() =>
+															setActivityFilter(
+																value,
+															)
+														}
+														className={cn(
+															"px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
+															activityFilter ===
+																value
+																? "bg-foreground/8 text-foreground"
+																: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
+														)}
+													>
+														{
+															label
+														}
+													</button>
+												),
+											)}
+										</div>
 									</div>
-								</div>
 
-								<div className="border-t border-border/30 mx-3" />
+									<div className="border-t border-border/30 mx-3" />
 
-								{/* Assignee */}
-								<div className="px-3.5 pt-2.5 pb-2.5">
-									<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-										Assignee
-									</span>
-									<div className="flex flex-wrap gap-1 mt-2">
-										{(
-											[
+									{/* Assignee */}
+									<div className="px-3.5 pt-2.5 pb-2.5">
+										<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+											Assignee
+										</span>
+										<div className="flex flex-wrap gap-1 mt-2">
+											{(
 												[
-													"all",
-													"All",
-												],
-												[
-													"assigned",
-													"Assigned",
-												],
-												[
-													"unassigned",
-													"Unassigned",
-												],
-											] as [
-												AssigneeFilter,
-												string,
-											][]
-										).map(
-											([
-												value,
-												label,
-											]) => (
-												<button
-													key={
-														value
-													}
-													onClick={() =>
-														setAssigneeFilter(
-															value,
-														)
-													}
-													className={cn(
-														"px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
-														assigneeFilter ===
+													[
+														"all",
+														"All",
+													],
+													[
+														"assigned",
+														"Assigned",
+													],
+													[
+														"unassigned",
+														"Unassigned",
+													],
+												] as [
+													AssigneeFilter,
+													string,
+												][]
+											).map(
+												([
+													value,
+													label,
+												]) => (
+													<button
+														key={
 															value
-															? "bg-foreground/8 text-foreground"
-															: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
-													)}
-												>
-													{
-														label
-													}
-												</button>
-											),
-										)}
+														}
+														onClick={() =>
+															setAssigneeFilter(
+																value,
+															)
+														}
+														className={cn(
+															"px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
+															assigneeFilter ===
+																value
+																? "bg-foreground/8 text-foreground"
+																: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
+														)}
+													>
+														{
+															label
+														}
+													</button>
+												),
+											)}
+										</div>
 									</div>
-								</div>
 
-								<div className="border-t border-border/30 mx-3" />
+									<div className="border-t border-border/30 mx-3" />
 
-								{/* Author */}
-								<div className="px-3.5 pt-2.5 pb-2.5">
-									<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-										Author
-									</span>
-									<div
-										className="mt-2"
-										ref={authorRef}
-									>
-										{selectedAuthor &&
-										selectedAuthorData ? (
-											<button
-												onClick={() => {
-													setSelectedAuthor(
-														null,
-													);
-													setAuthorSearch(
-														"",
-													);
-													setAuthorIssues(
-														null,
-													);
-												}}
-												className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono rounded-md bg-foreground/8 text-foreground transition-colors cursor-pointer"
-											>
-												<Image
-													src={
-														selectedAuthorData.avatar_url
-													}
-													alt={
-														selectedAuthorData.login
-													}
-													width={
-														14
-													}
-													height={
-														14
-													}
-													className="rounded-full"
-												/>
-												{
-													selectedAuthorData.login
-												}
-												<X className="w-2.5 h-2.5 text-muted-foreground/50" />
-											</button>
-										) : (
-											<div className="relative">
-												<input
-													type="text"
-													placeholder="Search authors..."
-													value={
-														authorSearch
-													}
-													onChange={(
-														e,
-													) => {
-														setAuthorSearch(
-															e
-																.target
-																.value,
+									{/* Author */}
+									<div className="px-3.5 pt-2.5 pb-2.5">
+										<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+											Author
+										</span>
+										<div
+											className="mt-2"
+											ref={
+												authorRef
+											}
+										>
+											{selectedAuthor &&
+											selectedAuthorData ? (
+												<button
+													onClick={() => {
+														setSelectedAuthor(
+															null,
 														);
-														setAuthorDropdownOpen(
-															true,
+														setAuthorSearch(
+															"",
+														);
+														setAuthorIssues(
+															null,
 														);
 													}}
-													onFocus={() =>
-														setAuthorDropdownOpen(
-															true,
-														)
+													className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono rounded-md bg-foreground/8 text-foreground transition-colors cursor-pointer"
+												>
+													<Image
+														src={
+															selectedAuthorData.avatar_url
+														}
+														alt={
+															selectedAuthorData.login
+														}
+														width={
+															14
+														}
+														height={
+															14
+														}
+														className="rounded-full"
+													/>
+													{
+														selectedAuthorData.login
 													}
-													className="w-full bg-transparent border-b border-border/40 px-1 py-1 text-[10px] font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground/20 transition-colors"
-												/>
-												{authorDropdownOpen &&
-													filteredAuthors.length >
-														0 && (
-														<div className="absolute z-40 top-full left-0 mt-1 w-full border border-border/60 bg-background shadow-lg max-h-36 overflow-y-auto rounded-lg">
-															{filteredAuthors.map(
-																(
-																	author,
-																) => (
-																	<button
-																		key={
-																			author.login
-																		}
-																		onClick={() => {
-																			setSelectedAuthor(
-																				author.login,
-																			);
-																			setAuthorSearch(
-																				"",
-																			);
-																			setAuthorDropdownOpen(
-																				false,
-																			);
-																			if (
-																				onAuthorFilter
-																			) {
-																				startTransition(
-																					async () => {
-																						const result =
-																							await onAuthorFilter(
-																								owner,
-																								repo,
-																								author.login,
-																							);
-																						setAuthorIssues(
-																							result as {
-																								open: Issue[];
-																								closed: Issue[];
-																							},
-																						);
-																					},
-																				);
-																			}
-																		}}
-																		className="flex items-center gap-2 w-full px-2.5 py-1.5 text-[11px] font-mono text-muted-foreground hover:bg-muted/50 dark:hover:bg-white/3 hover:text-foreground transition-colors cursor-pointer"
-																	>
-																		<Image
-																			src={
-																				author.avatar_url
-																			}
-																			alt={
+													<X className="w-2.5 h-2.5 text-muted-foreground/50" />
+												</button>
+											) : (
+												<div className="relative">
+													<input
+														type="text"
+														placeholder="Search authors..."
+														value={
+															authorSearch
+														}
+														onChange={(
+															e,
+														) => {
+															setAuthorSearch(
+																e
+																	.target
+																	.value,
+															);
+															setAuthorDropdownOpen(
+																true,
+															);
+														}}
+														onFocus={() =>
+															setAuthorDropdownOpen(
+																true,
+															)
+														}
+														className="w-full bg-transparent border-b border-border/40 px-1 py-1 text-[10px] font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground/20 transition-colors"
+													/>
+													{authorDropdownOpen &&
+														filteredAuthors.length >
+															0 && (
+															<div className="absolute z-40 top-full left-0 mt-1 w-full border border-border/60 bg-background shadow-lg max-h-36 overflow-y-auto rounded-lg">
+																{filteredAuthors.map(
+																	(
+																		author,
+																	) => (
+																		<button
+																			key={
 																				author.login
 																			}
-																			width={
-																				14
+																			onClick={() => {
+																				setSelectedAuthor(
+																					author.login,
+																				);
+																				setAuthorSearch(
+																					"",
+																				);
+																				setAuthorDropdownOpen(
+																					false,
+																				);
+																				if (
+																					onAuthorFilter
+																				) {
+																					startTransition(
+																						async () => {
+																							const result =
+																								await onAuthorFilter(
+																									owner,
+																									repo,
+																									author.login,
+																								);
+																							setAuthorIssues(
+																								result as {
+																									open: Issue[];
+																									closed: Issue[];
+																								},
+																							);
+																						},
+																					);
+																				}
+																			}}
+																			className="flex items-center gap-2 w-full px-2.5 py-1.5 text-[11px] font-mono text-muted-foreground hover:bg-muted/50 dark:hover:bg-white/3 hover:text-foreground transition-colors cursor-pointer"
+																		>
+																			<Image
+																				src={
+																					author.avatar_url
+																				}
+																				alt={
+																					author.login
+																				}
+																				width={
+																					14
+																				}
+																				height={
+																					14
+																				}
+																				className="rounded-full"
+																			/>
+																			{
+																				author.login
 																			}
-																			height={
-																				14
-																			}
-																			className="rounded-full"
-																		/>
-																		{
-																			author.login
-																		}
-																	</button>
-																),
-															)}
-														</div>
-													)}
-											</div>
-										)}
+																		</button>
+																	),
+																)}
+															</div>
+														)}
+												</div>
+											)}
+										</div>
 									</div>
-								</div>
 
-								{/* Labels */}
-								{labels.length > 0 && (
-									<>
-										<div className="border-t border-border/30 mx-3" />
-										<div className="px-3.5 pt-2.5 pb-2.5">
-											<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-												Label
-											</span>
-											<div className="flex flex-wrap gap-1 mt-2">
-												{labels.map(
-													(
-														label,
-													) => (
-														<button
-															key={
-																label.name
-															}
-															onClick={() =>
-																setSelectedLabel(
-																	(
-																		l,
-																	) =>
-																		l ===
-																		label.name
-																			? null
-																			: label.name,
-																)
-															}
-															className={cn(
-																"flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
-																selectedLabel ===
+									{/* Labels */}
+									{labels.length > 0 && (
+										<>
+											<div className="border-t border-border/30 mx-3" />
+											<div className="px-3.5 pt-2.5 pb-2.5">
+												<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+													Label
+												</span>
+												<div className="flex flex-wrap gap-1 mt-2">
+													{labels.map(
+														(
+															label,
+														) => (
+															<button
+																key={
 																	label.name
-																	? "bg-foreground/8 text-foreground"
-																	: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
-															)}
-														>
-															<span
-																className="w-2 h-2 rounded-full shrink-0"
-																style={{
-																	backgroundColor: `#${label.color}`,
-																}}
-															/>
-															{
-																label.name
-															}
-														</button>
-													),
-												)}
+																}
+																onClick={() =>
+																	setSelectedLabel(
+																		(
+																			l,
+																		) =>
+																			l ===
+																			label.name
+																				? null
+																				: label.name,
+																	)
+																}
+																className={cn(
+																	"flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
+																	selectedLabel ===
+																		label.name
+																		? "bg-foreground/8 text-foreground"
+																		: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
+																)}
+															>
+																<span
+																	className="w-2 h-2 rounded-full shrink-0"
+																	style={{
+																		backgroundColor: `#${label.color}`,
+																	}}
+																/>
+																{
+																	label.name
+																}
+															</button>
+														),
+													)}
+												</div>
 											</div>
-										</div>
-									</>
-								)}
+										</>
+									)}
 
-								{/* Milestone */}
-								{milestones.length > 0 && (
-									<>
-										<div className="border-t border-border/30 mx-3" />
-										<div className="px-3.5 pt-2.5 pb-2.5">
-											<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-												Milestone
-											</span>
-											<div className="flex flex-wrap gap-1 mt-2">
-												{milestones.map(
-													(
-														ms,
-													) => (
-														<button
-															key={
-																ms
-															}
-															onClick={() =>
-																setSelectedMilestone(
-																	(
-																		m,
-																	) =>
-																		m ===
-																		ms
-																			? null
-																			: ms,
-																)
-															}
-															className={cn(
-																"px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
-																selectedMilestone ===
+									{/* Milestone */}
+									{milestones.length > 0 && (
+										<>
+											<div className="border-t border-border/30 mx-3" />
+											<div className="px-3.5 pt-2.5 pb-2.5">
+												<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+													Milestone
+												</span>
+												<div className="flex flex-wrap gap-1 mt-2">
+													{milestones.map(
+														(
+															ms,
+														) => (
+															<button
+																key={
 																	ms
-																	? "bg-foreground/8 text-foreground"
-																	: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
-															)}
-														>
-															{
-																ms
-															}
-														</button>
-													),
-												)}
+																}
+																onClick={() =>
+																	setSelectedMilestone(
+																		(
+																			m,
+																		) =>
+																			m ===
+																			ms
+																				? null
+																				: ms,
+																	)
+																}
+																className={cn(
+																	"px-2.5 py-1 text-[10px] font-mono rounded-sm transition-colors cursor-pointer",
+																	selectedMilestone ===
+																		ms
+																		? "bg-foreground/8 text-foreground"
+																		: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/4",
+																)}
+															>
+																{
+																	ms
+																}
+															</button>
+														),
+													)}
+												</div>
 											</div>
-										</div>
-									</>
-								)}
+										</>
+									)}
 
-								{/* Clear all */}
-								{activeFilterCount > 0 && (
-									<>
-										<div className="border-t border-border/30 mx-3" />
-										<button
-											onClick={() => {
-												clearAllFilters();
-												setFiltersOpen(
-													false,
-												);
-											}}
-											className="flex items-center gap-1.5 w-full px-3.5 py-2.5 text-[10px] font-mono text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
-										>
-											<X className="w-3 h-3" />
-											Clear all
-											filters
-										</button>
-									</>
-								)}
-							</div>
+									{/* Clear all */}
+									{activeFilterCount > 0 && (
+										<>
+											<div className="border-t border-border/30 mx-3" />
+											<button
+												onClick={() => {
+													clearAllFilters();
+													setFiltersOpen(
+														false,
+													);
+												}}
+												className="flex items-center gap-1.5 w-full px-3.5 py-2.5 text-[10px] font-mono text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
+											>
+												<X className="w-3 h-3" />
+												Clear
+												all
+												filters
+											</button>
+										</>
+									)}
+								</div>
+							)}
+						</div>
+
+						{activeFilterCount > 0 && (
+							<button
+								onClick={clearAllFilters}
+								className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-mono text-muted-foreground/50 hover:text-foreground transition-colors cursor-pointer"
+							>
+								<X className="w-3 h-3" />
+								Clear
+							</button>
 						)}
-					</div>
 
-					{activeFilterCount > 0 && (
-						<button
-							onClick={clearAllFilters}
-							className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-mono text-muted-foreground/50 hover:text-foreground transition-colors cursor-pointer"
-						>
-							<X className="w-3 h-3" />
-							Clear
-						</button>
-					)}
-
-					<div className="ml-auto flex items-center gap-2">
-						<button
-							onClick={() => {
-								openChat({
-									chatType: "general",
-									contextKey: `${owner}/${repo}`,
-									contextBody: {},
-									placeholder:
-										"Describe the change you want Ghost to implement...",
-									emptyTitle: "Run with Ghost",
-									emptyDescription:
-										"Ghost will analyze the repo, make changes, and open a PR with the full conversation.",
-								});
-							}}
-							className="flex items-center gap-1.5 h-8 px-3 rounded-sm border text-xs font-medium transition-colors cursor-pointer border-border text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 dark:hover:bg-white/3"
-						>
-							<Zap className="w-3 h-3" />
-							Run with Ghost
-						</button>
-						<CreateIssueDialog owner={owner} repo={repo} />
+						<div className="grid grid-cols-2 gap-2 w-full md:w-auto md:flex md:ml-auto md:items-center">
+							<button
+								onClick={() => {
+									openChat({
+										chatType: "general",
+										contextKey: `${owner}/${repo}`,
+										contextBody: {},
+										placeholder:
+											"Describe the change you want Ghost to implement...",
+										emptyTitle: "Run with Ghost",
+										emptyDescription:
+											"Ghost will analyze the repo, make changes, and open a PR with the full conversation.",
+									});
+								}}
+								className="flex items-center justify-center gap-1.5 h-8 px-3 rounded-sm border text-xs font-medium transition-colors cursor-pointer border-border text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 dark:hover:bg-white/3"
+							>
+								<Zap className="w-3 h-3" />
+								Run with Ghost
+							</button>
+							<CreateIssueDialog
+								owner={owner}
+								repo={repo}
+							/>
+						</div>
 					</div>
 				</div>
 
